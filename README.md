@@ -24,7 +24,7 @@ Note that due to the size limitation of the repository, we only provide few smal
 
 # Requirement
 ```
-Python 3
+Python >= 3.0
 networkx >= 1.11
 sklearn >= 0.18.1
 gensim >= 3.4
@@ -43,7 +43,7 @@ edge_type head tail weight
 # Model
 Before training, you should first create a folder 'Model' with:
 
-    mkdir Model
+    mkdir model
 The embedding model will be automatically saved into that folder.
 
 # Train
@@ -60,10 +60,12 @@ To repeat the experiment in the paper, simply run:
 python3 main.py data/Vickers-Chan-7thGraders_multiplex.edges
 ```
 
-
 # Acknowledgment
 We built the training framework based on the original [Gensim Word2Vec](https://radimrehurek.com/gensim/models/word2vec.html).
-We used the code from [LINE](https://github.com/tangjianpku/LINE), [Node2Vec](https://github.com/aditya-grover/node2vec), and algorithm from [PMNE](https://arxiv.org/pdf/1709.03551.pdf) to complete our experiment.
+To complete our experiment we used the code from:
+- [LINE](https://github.com/tangjianpku/LINE)
+- [Node2Vec](https://github.com/aditya-grover/node2vec)
+- [PMNE](https://arxiv.org/pdf/1709.03551.pdf) (algorithm only)
 
 # Others
 If you have some questions about the code, you are welcome to open an issue or send me an email, I will respond to that as soon as possible.
