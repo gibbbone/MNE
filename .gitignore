@@ -1,1 +1,6 @@
 .idea/
+model/*
+.ipynb_checkpoints/*
+C++/LINE/.ipynb_checkpoints/*
+LINE*.txt
+__pycache__/*

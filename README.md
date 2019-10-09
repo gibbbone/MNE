@@ -40,24 +40,18 @@ edge_type head tail weight
     .
     .
 ```
-# Model
-Before training, you should first create a folder 'Model' with:
-
-    mkdir model
-The embedding model will be automatically saved into that folder.
-
 # Train
 To train the embedding model, simply run:
 ```
 python3 train_model.py data/Vickers-Chan-7thGraders_multiplex.edges
 ```
-You can replace the name of provided dataset with  your own dataset.
-
+- **dataset**: You can replace the name of provided dataset with  your own dataset.
+- **output folder**: By default the training script will automatically save the results into the 'model' folder. If you want a different folder for output just add it as second argument.
 
 # Demo
 To repeat the experiment in the paper, simply run:
 ```
-python3 main.py data/Vickers-Chan-7thGraders_multiplex.edges
+python3 main.py --input data/Vickers-Chan-7thGraders_multiplex.edges
 ```
 
 # Acknowledgment
