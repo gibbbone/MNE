@@ -1,6 +1,14 @@
 .idea/
 model/*
-.ipynb_checkpoints/*
-C++/LINE/.ipynb_checkpoints/*
+**/*.ipynb_checkpoints/*
+.ipynb_checkpoints
+C++/LINE/linux/youtube-links*
+C++/LINE/linux/net-youtube*
+C++/LINE/linux/vec*.txt
+C++/LINE/linux/example_data
+**/*.o
 LINE*.txt
 __pycache__/*
+.DS_Store
+**/*.DS_Store
+
