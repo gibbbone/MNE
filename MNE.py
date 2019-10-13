@@ -11,82 +11,31 @@ import threading
 import itertools
 import numpy as np
 import networkx as nx
-import Random_walk
 from gensim.models import Word2Vec
 from gensim.utils import keep_vocab_item, call_on_class_only
 from gensim.utils import keep_vocab_item
 from gensim.models.keyedvectors import KeyedVectors, Vocab
 import json
-
 try:
     from queue import Queue, Empty
 except ImportError:
     from Queue import Queue, Empty
-
 from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL,\
     double, uint32, seterr, array, uint8, vstack, fromstring, sqrt, newaxis,\
     ndarray, empty, sum as np_sum, prod, ones, ascontiguousarray, vstack, logaddexp
-
 from scipy.special import expit
-
 from gensim import utils, matutils  # utility fnc for pickling, common scipy operations etc
 from gensim.corpora.dictionary import Dictionary
 from six import iteritems, itervalues, string_types
 # from six.moves import xrange
 from types import GeneratorType
 from scipy import stats
+import Random_walk
+from utilities import get_G_from_edges, load_network_data, train_deepwalk_embedding
 
 logger = logging.getLogger(__name__)
-
-
 FAST_VERSION = -1
 MAX_WORDS_IN_BATCH = 10000
-
-def get_G_from_edges(edges):
-    edge_dict = dict()
-    for edge in edges:
-        edge_key = str(edge[0]) + '_' + str(edge[1])
-        if edge_key not in edge_dict:
-            edge_dict[edge_key] = 1
-        else:
-            edge_dict[edge_key] += 1
-    tmp_G = nx.DiGraph()
-    for edge_key in edge_dict:
-        weight = edge_dict[edge_key]
-        tmp_G.add_edge(edge_key.split('_')[0], edge_key.split('_')[1])
-        tmp_G[edge_key.split('_')[0]][edge_key.split('_')[1]]['weight'] = weight
-    return tmp_G
-
-
-def load_network_data(f_name):
-    # This function is used to load multiplex data
-    print('We are loading data from:', f_name)
-    edge_data_by_type = dict()
-    all_edges = list()
-    all_nodes = list()
-    with open(f_name, 'r') as f:
-        for line in f:
-            words = line[:-1].split(' ')
-            if words[0] not in edge_data_by_type:
-                edge_data_by_type[words[0]] = list()
-            edge_data_by_type[words[0]].append((words[1], words[2]))
-            all_edges.append((words[1], words[2]))
-            all_nodes.append(words[1])
-            all_nodes.append(words[2])
-    all_nodes = list(set(all_nodes))
-    # create common layer.
-    all_edges = list(set(all_edges))
-    edge_data_by_type['Base'] = all_edges
-    print('Finish loading data')
-    return edge_data_by_type, all_edges, all_nodes
-
-
-def train_deepwalk_embedding(walks, iteration=None):
-    if iteration is None:
-        iteration = 100
-    model = Word2Vec(walks, size=200, window=5, min_count=0, sg=1, workers=4, iter=iteration)
-    return model
-
 
 def train_embedding(current_embedding, walks, layer_id, iter=10, info_size=10, base_weight=1):
     training_data = list()

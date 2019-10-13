@@ -177,7 +177,7 @@ if __name__ == "__main__":
         overall_LINE_performance.append(tmp_LINE_performance / (len(training_data_by_type)-1))
         overall_Deepwalk_performance.append(tmp_Deepwalk_performance / (len(training_data_by_type)-1))
         common_neighbor_performance, Jaccard_performance, AA_performance = Evaluate_basic_methods(merged_networks)
-        performance_1, performance_2, performance_3 = Evaluate_PMNE_methods(merged_networks)
+        performance_1, performance_2, performance_3 = Evaluate_PMNE_methods(merged_networks, args)
         overall_common_neighbor_performance.append(common_neighbor_performance)
         overall_Jaccard_performance.append(Jaccard_performance)
         overall_AA_performance.append(AA_performance)
@@ -212,12 +212,11 @@ if __name__ == "__main__":
 
     for perf,pstring in zip(performances, perf_str):
         perf = np.asarray(perf)
-        print(
-            'Overall {} AUC:'.format(pstring), perf)
+        print('Overall {} AUC: '.format(
+            pstring), perf)
+        print('Overall {} AUC mean: {:8}'.format(
+            pstring, np.mean(perf)))
+        print('Overall {} AUC std: {:8}'.format(
+            pstring, np.std(perf)))
         print('')
-        print(
-            'Overall {} AUC mean:'.format(pstring), np.mean(perf))
-        print('')
-        print(
-            'Overall {} AUC std:'.format(pstring), np.std(perf))        
     print('end')

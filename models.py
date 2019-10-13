@@ -7,6 +7,10 @@ import itertools
 import numpy as np
 import networkx as nx
 import subprocess 
+from utilities import * 
+import Random_walk 
+import Node2Vec_LayerSelect
+from MNE import *
 
 def read_LINE_vectors(file_name):
     tmp_embedding = dict()
@@ -20,19 +24,35 @@ def read_LINE_vectors(file_name):
     file.close()
     return tmp_embedding
 
-
 def train_LINE_model(edges, epoch_num=1, dimension=100, negative=5):
-    preparation_command = 'LD_LIBRARY_PATH=/usr/local/lib\nexport LD_LIBRARY_PATH'
+    def get_command_string(input_string, output_string, order, negative, dimension):
+        base_string = 'C++/LINE/linux/line -train {} -output {} -order {} -negative {} -dimension {}' 
+        output_string_i = output_string.format(order)
+        command_string = base_string.format(
+            input_string,
+            output_string_i,
+            order, 
+            negative, 
+            int(dimension/2))             
+        return command_string
+    
     file_name = 'LINE_tmp_edges.txt'
-    file = open(file_name, 'w')
-    for edge in edges:
-        file.write(edge[0] + ' ' + edge[1] + ' 1\n')
-    file.close()
-    command1 = 'C++/LINE/linux/line -train LINE_tmp_edges.txt -output LINE_tmp_embedding1.txt -order 1 base-negative ' + str(
-        negative) + ' -dimension ' + str(dimension / 2)
-    command2 = 'C++/LINE/linux/line -train LINE_tmp_edges.txt -output LINE_tmp_embedding2.txt -order 2 -negative ' + str(
-        negative) + ' -dimension ' + str(dimension / 2)
-    subprocess.call(preparation_command + '\n' + command1 + '\n' + command2, shell=True)
+    with open(file_name, 'w') as edge_file:
+        for edge in edges:
+            edge_file.write(edge[0] + ' ' + edge[1] + ' 1\n')
+    
+    command1 = get_command_string(
+        'LINE_tmp_edges.txt', 'LINE_tmp_embedding{}.txt', 
+        1, negative, dimension)
+    command2 = get_command_string(
+        'LINE_tmp_edges.txt', 'LINE_tmp_embedding{}.txt', 
+        2, negative, dimension)
+    
+    #preparation_command = 'LD_LIBRARY_PATH=/usr/local/lib\nexport LD_LIBRARY_PATH'    
+    preparation_command = 'LD_LIBRARY_PATH=$HOME/gls/lib\nexport LD_LIBRARY_PATH'
+    subprocess.call(preparation_command, shell=True)
+    subprocess.call(command1, shell=True)
+    subprocess.call(command2, shell=True)    
     print('finish training')
     first_order_embedding = read_LINE_vectors('LINE_tmp_embedding1.txt')
     second_order_embedding = read_LINE_vectors('LINE_tmp_embedding2.txt')
@@ -123,7 +143,7 @@ def merge_PMNE_models(input_all_models, all_nodes):
     return final_model
 
 
-def Evaluate_PMNE_methods(input_network):
+def Evaluate_PMNE_methods(input_network, args):
     # we need to write codes to implement the co-analysis method of PMNE
     print('Start to analyze the PMNE method')
     training_network = input_network['training']

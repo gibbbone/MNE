@@ -6,7 +6,6 @@
 import numpy as np
 import random
 
-
 class Graph():
     def __init__(self, nx_graphs, p, q, r):
         self.G = nx_graphs
@@ -42,7 +41,7 @@ class Graph():
               print("caught the replica", walk)
             '''
             # print(walk, graphs.index(G))
-            cur_nbrs = G.neighbors(cur)
+            cur_nbrs = list(G.neighbors(cur))
             # print(cur_nbrs)
             if len(cur_nbrs) > 0:
                 if len(walk) == 1:
