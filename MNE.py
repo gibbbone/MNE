@@ -1,5 +1,4 @@
 from __future__ import division  # py3 "true division"
-
 import logging
 import sys
 import os
@@ -30,104 +29,10 @@ from six import iteritems, itervalues, string_types
 # from six.moves import xrange
 from types import GeneratorType
 from scipy import stats
-import Random_walk
-from utilities import get_G_from_edges, load_network_data, train_deepwalk_embedding
 
 logger = logging.getLogger(__name__)
 FAST_VERSION = -1
 MAX_WORDS_IN_BATCH = 10000
-
-def train_embedding(current_embedding, walks, layer_id, iter=10, info_size=10, base_weight=1):
-    training_data = list()
-    for walk in walks:
-        tmp_walk = list()
-        for node in walk:
-            tmp_walk.append(str(node))
-        training_data.append(tmp_walk)
-    base_embedding = dict()
-    if current_embedding is not None:
-        for pos in range(len(current_embedding['index2word'])):
-            base_embedding[current_embedding['index2word'][pos]] = current_embedding['base'][pos]
-        if layer_id in current_embedding['tran']:
-            current_tran = current_embedding['tran'][layer_id]
-            current_additional_embedding = dict()
-            for pos in range(len(current_embedding['index2word'])):
-                current_additional_embedding[current_embedding['index2word'][pos]] = current_embedding['addition'][layer_id][pos]
-            initial_embedding = {'base': base_embedding, 'tran': current_tran, 'addition': current_additional_embedding}
-        else:
-            initial_embedding = {'base': base_embedding, 'tran': None, 'addition': None}
-    else:
-        initial_embedding = None
-    new_model = MNE(training_data, size=200, window=5, min_count=0, sg=1, workers=4, iter=iter, small_size=info_size, initial_embedding=initial_embedding, base_weight=base_weight)
-    # new_model = merge_model(tmp_model, new_model, w=learning_rate)
-
-    return new_model.in_base, new_model.in_tran, new_model.in_local, new_model.wv.index2word
-
-
-def train_model(network_data):
-    base_network = network_data['Base']
-    base_G = Random_walk.RWGraph(get_G_from_edges(base_network), 'directed', 1, 1)
-    print('finish building the graph')
-    base_G.preprocess_transition_probs()
-    base_walks = base_G.simulate_walks(20, 10)
-    base_embedding, _, _, index2word = train_embedding(None, base_walks, 'Base', 100, 10, 1)
-    final_model = dict()
-    final_model['base'] = base_embedding
-    final_model['tran'] = dict()
-    final_model['addition'] = dict()
-    final_model['index2word'] = index2word
-    # you can repeat this process for multiple times
-    for layer_id in network_data:
-        if layer_id == 'Base':
-            continue
-        print('We are training model for layer:', layer_id)
-        if layer_id not in final_model['addition']:
-            final_model['addition'][layer_id] = zeros((len(final_model['index2word']), 10), dtype=REAL)
-        tmp_data = network_data[layer_id]
-        # start to do the random walk on a layer
-        layer_G = Random_walk.RWGraph(get_G_from_edges(tmp_data), 'directed', 1, 1)
-        layer_G.preprocess_transition_probs()
-        layer_walks = layer_G.simulate_walks(20, 10)
-        tmp_base, tmp_tran, tmp_local, tmp_index2word = train_embedding(final_model, layer_walks, layer_id, 20, 10, 0)
-        base_embedding_dict = dict()
-        local_embedding_dict = dict()
-        for pos in range(len(tmp_index2word)):
-            base_embedding_dict[tmp_index2word[pos]] = tmp_base[pos]
-            local_embedding_dict[tmp_index2word[pos]] = tmp_local[pos]
-        final_model['tran'][layer_id] = tmp_tran
-        for tmp_word in tmp_index2word:
-            final_model['addition'][layer_id][final_model['index2word'].index(tmp_word)] = local_embedding_dict[tmp_word]
-    return final_model
-
-
-def save_model(final_model, save_folder_name):
-    with open(save_folder_name+'/'+'index2word.json', 'w') as f:
-        json.dump(final_model['index2word'], f)
-    np.save(save_folder_name+'/base.npy', final_model['base'])
-    for layer_id in final_model['addition']:
-        np.save(save_folder_name+'/tran_'+str(layer_id)+'.npy', final_model['tran'][layer_id])
-        np.save(save_folder_name+'/addition_'+str(layer_id)+'.npy', final_model['addition'][layer_id])
-
-
-def load_model(data_folder_name):
-    file_names = os.listdir(data_folder_name)
-    layer_ids = list()
-    for name in file_names:
-        if name[:4] == 'tran':
-            tmp_id_name = name[5:-4]
-            if tmp_id_name not in layer_ids:
-                layer_ids.append(tmp_id_name)
-    final_model = dict()
-    final_model['base'] = np.load(data_folder_name+'/base.npy')
-    final_model['tran'] = dict()
-    final_model['addition'] = dict()
-    with open(data_folder_name+'/'+'index2word.json', 'r') as f:
-        final_model['index2word'] = json.load(f)
-    for layer_id in layer_ids:
-        final_model['tran'][layer_id] = np.load(data_folder_name+'/tran_'+str(layer_id)+'.npy')
-        final_model['addition'][layer_id] = np.load(data_folder_name+'/addition_'+str(layer_id)+'.npy')
-    return final_model
-
 
 def train_batch(model, sentences, alpha, limitation, base_weight, work=None):
     """
@@ -193,7 +98,6 @@ def train_pair(model, word, context_index, alpha, limitation, base_weight, learn
             model.in_tran /= (np.linalg.norm(model.in_tran)/limitation)
 
     return neu1e
-
 
 class MNE(utils.SaveLoad):
     """
@@ -1078,9 +982,6 @@ class MNE(utils.SaveLoad):
     def save_word2vec_format(self, fname, fvocab=None, binary=False):
         """Deprecated. Use model.wv.save_word2vec_format instead."""
         raise DeprecationWarning("Deprecated. Use model.wv.save_word2vec_format instead.")
-
-
-
 
 
 class LineSentence(object):

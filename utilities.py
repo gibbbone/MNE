@@ -6,12 +6,61 @@ from collections import defaultdict
 import itertools
 import numpy as np
 import networkx as nx
-import math
+from math import log as math_log
 from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL,\
     double, uint32, seterr, array, uint8, vstack, fromstring, sqrt, newaxis,\
     ndarray, empty, sum as np_sum, prod, ones, ascontiguousarray, vstack, logaddexp
 from sklearn.metrics import roc_auc_score
 from gensim.models import Word2Vec
+import argparse
+
+def parse_args():
+    # Parses the node2vec arguments.
+    parser = argparse.ArgumentParser(description="Run node2vec.")
+
+    parser.add_argument('--input', nargs='?', default='graph/karate.edgelist',
+                        help='Input graph path')
+
+    parser.add_argument('--output', nargs='?', default='emb/karate.emb',
+                        help='Embeddings path')
+
+    parser.add_argument('--dimensions', type=int, default=200,
+                        help='Number of dimensions. Default is 100.')
+
+    parser.add_argument('--walk-length', type=int, default=10,
+                        help='Length of walk per source. Default is 80.')
+
+    parser.add_argument('--num-walks', type=int, default=20,
+                        help='Number of walks per source. Default is 10.')
+
+    parser.add_argument('--window-size', type=int, default=10,
+                        help='Context size for optimization. Default is 10.')
+
+    parser.add_argument('--iter', type=int, default=10,
+                        help='Number of epochs in SGD')
+
+    parser.add_argument('--workers', type=int, default=8,
+                        help='Number of parallel workers. Default is 8.')
+
+    parser.add_argument('--p', type=float, default=1,
+                        help='Return hyperparameter. Default is 1.')
+
+    parser.add_argument('--q', type=float, default=1,
+                        help='Inout hyperparameter. Default is 1.')
+
+    parser.add_argument('--weighted', dest='weighted', action='store_true',
+                        help='Boolean specifying (un)weighted. Default is unweighted.')
+    parser.add_argument('--unweighted', dest='unweighted', action='store_false')
+    parser.set_defaults(weighted=False)
+
+    parser.add_argument('--directed', dest='directed', action='store_true',
+                        help='Graph is (un)directed. Default is undirected.')
+    parser.add_argument('--undirected', dest='undirected', action='store_false')
+    parser.set_defaults(directed=False)
+
+    parser.add_argument('--file', help='Input graph filepath')
+
+    return parser.parse_args()
 
 def get_G_from_edges(edges):
     edge_dict = dict()
@@ -225,5 +274,5 @@ def get_AA_score(networks, target_A, target_B, frequency_dict):
     for neighbor in A_neighbors:
         if neighbor in B_neighbors:
             if frequency_dict[neighbor] > 1:
-                AA_score += 1/(math.log(frequency_dict[neighbor]))
+                AA_score += 1/(math_log(frequency_dict[neighbor]))
     return AA_score

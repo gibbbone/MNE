@@ -148,7 +148,6 @@ class Graph():
         # print(alias_jump_list)
         return
 
-
 def alias_setup(probs):
     '''
     Compute utility lists for non-uniform sampling from discrete distributions.

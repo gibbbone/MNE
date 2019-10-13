@@ -1,62 +1,9 @@
 # This python file is used to reproduce our link prediction experiment
 # Author: Hongming ZHANG, HKUST KnowComp Group
 
-from sklearn.metrics import roc_auc_score
-import math
-import subprocess
-import Node2Vec_LayerSelect
-import argparse
 from utilities import *
 from models import *
 from MNE import *
-
-def parse_args():
-    # Parses the node2vec arguments.
-    parser = argparse.ArgumentParser(description="Run node2vec.")
-
-    parser.add_argument('--input', nargs='?', default='graph/karate.edgelist',
-                        help='Input graph path')
-
-    parser.add_argument('--output', nargs='?', default='emb/karate.emb',
-                        help='Embeddings path')
-
-    parser.add_argument('--dimensions', type=int, default=200,
-                        help='Number of dimensions. Default is 100.')
-
-    parser.add_argument('--walk-length', type=int, default=10,
-                        help='Length of walk per source. Default is 80.')
-
-    parser.add_argument('--num-walks', type=int, default=20,
-                        help='Number of walks per source. Default is 10.')
-
-    parser.add_argument('--window-size', type=int, default=10,
-                        help='Context size for optimization. Default is 10.')
-
-    parser.add_argument('--iter', type=int, default=10,
-                        help='Number of epochs in SGD')
-
-    parser.add_argument('--workers', type=int, default=8,
-                        help='Number of parallel workers. Default is 8.')
-
-    parser.add_argument('--p', type=float, default=1,
-                        help='Return hyperparameter. Default is 1.')
-
-    parser.add_argument('--q', type=float, default=1,
-                        help='Inout hyperparameter. Default is 1.')
-
-    parser.add_argument('--weighted', dest='weighted', action='store_true',
-                        help='Boolean specifying (un)weighted. Default is unweighted.')
-    parser.add_argument('--unweighted', dest='unweighted', action='store_false')
-    parser.set_defaults(weighted=False)
-
-    parser.add_argument('--directed', dest='directed', action='store_true',
-                        help='Graph is (un)directed. Default is undirected.')
-    parser.add_argument('--undirected', dest='undirected', action='store_false')
-    parser.set_defaults(directed=False)
-
-    parser.add_argument('--file', help='Input graph filepath')
-
-    return parser.parse_args()
 
 if __name__ == "__main__":
     args = parse_args()
@@ -98,6 +45,7 @@ if __name__ == "__main__":
                 else:
                     for tmp_edge in edge_data_by_type_by_group[edge_type][j]:
                         training_data_by_type[edge_type].append((tmp_edge[0], tmp_edge[1]))
+
         base_edges = list()
         training_nodes = list()
         for edge_type in training_data_by_type:
@@ -107,6 +55,7 @@ if __name__ == "__main__":
                 training_nodes.append(edge[1])
         training_nodes = list(set(training_nodes))
         training_data_by_type['Base'] = base_edges
+
         MNE_model = train_model(training_data_by_type)
 
         tmp_MNE_performance = 0
@@ -118,6 +67,7 @@ if __name__ == "__main__":
         merged_networks['test_true'] = dict()
         merged_networks['test_false'] = dict()
         for edge_type in training_data_by_type:
+            # Get data
             if edge_type == 'Base':
                 continue
             print('We are working on edge:', edge_type)
@@ -140,7 +90,7 @@ if __name__ == "__main__":
             merged_networks['training'][edge_type] = set(training_data_by_type[edge_type])
             merged_networks['test_true'][edge_type] = selected_true_edges
             merged_networks['test_false'][edge_type] = selected_false_edges
-
+            # MNE model
             local_model = dict()
             for pos in range(len(MNE_model['index2word'])):
                 # 0.5 is the weight parameter mentioned in the paper, which is used to show how important each relation type is and can be tuned based on the network.
@@ -148,43 +98,62 @@ if __name__ == "__main__":
             tmp_MNE_score = get_dict_AUC(local_model, selected_true_edges, selected_false_edges)
             # tmp_MNE_score = get_AUC(MNE_model['addition'][edge_type], selected_true_edges, selected_false_edges)
             print('MNE score:', tmp_MNE_score)
+            # node2vec model
             node2vec_G = Random_walk.RWGraph(get_G_from_edges(training_data_by_type[edge_type]), args.directed, 2, 0.5)
             node2vec_G.preprocess_transition_probs()
             node2vec_walks = node2vec_G.simulate_walks(20, 10)
             node2vec_model = train_deepwalk_embedding(node2vec_walks)
             tmp_node2vec_score = get_AUC(node2vec_model, selected_true_edges, selected_false_edges)
             print('node2vec score:', tmp_node2vec_score)
+            # Deepwalk model
             Deepwalk_G = Random_walk.RWGraph(get_G_from_edges(training_data_by_type[edge_type]), args.directed, 1, 1)
             Deepwalk_G.preprocess_transition_probs()
             Deepwalk_walks = Deepwalk_G.simulate_walks(args.num_walks, 10)
             Deepwalk_model = train_deepwalk_embedding(Deepwalk_walks)
             tmp_Deepwalk_score = get_AUC(Deepwalk_model, selected_true_edges, selected_false_edges)
             print('Deepwalk score:', tmp_Deepwalk_score)
+            # Line model
             LINE_model = train_LINE_model(training_data_by_type[edge_type])
             tmp_LINE_score = get_dict_AUC(LINE_model, selected_true_edges, selected_false_edges)
             print('LINE score:', tmp_LINE_score)
+            # Update performances
             tmp_MNE_performance += tmp_MNE_score
             tmp_node2Vec_performance += tmp_node2vec_score
             tmp_LINE_performance += tmp_LINE_score
             tmp_Deepwalk_performance += tmp_Deepwalk_score
 
-        print('MNE performance:', tmp_MNE_performance / (len(training_data_by_type)-1))
-        print('node2vec performance:', tmp_node2Vec_performance / (len(training_data_by_type)-1))
-        print('LINE performance:', tmp_LINE_performance / (len(training_data_by_type)-1))
-        print('Deepwalk performance:', tmp_Deepwalk_performance / (len(training_data_by_type)-1))
-        overall_MNE_performance.append(tmp_MNE_performance / (len(training_data_by_type)-1))
-        overall_node2Vec_performance.append(tmp_node2Vec_performance / (len(training_data_by_type)-1))
-        overall_LINE_performance.append(tmp_LINE_performance / (len(training_data_by_type)-1))
-        overall_Deepwalk_performance.append(tmp_Deepwalk_performance / (len(training_data_by_type)-1))
-        common_neighbor_performance, Jaccard_performance, AA_performance = Evaluate_basic_methods(merged_networks)
-        performance_1, performance_2, performance_3 = Evaluate_PMNE_methods(merged_networks, args)
+        # Print intermediate outputs
+        perf = [
+            tmp_MNE_performance, 
+            tmp_node2Vec_performance, 
+            tmp_LINE_performance, 
+            tmp_Deepwalk_performance,            
+        ]
+        perf_list = [
+            overall_MNE_performance, 
+            overall_node2Vec_performance, 
+            overall_LINE_performance, 
+            overall_Deepwalk_performance,            
+        ]
+        perf_string = ['MNE','node2vec','LINE','Deepwalk']
+
+        for p,pl,ps in zip(perf, perf_list, perf_string):
+            pp = p / (len(training_data_by_type)-1)
+            print('{} performance: {:10}'.format(ps, pp))
+            pl.append(pp)            
+        
+        # Common methods
+        common_neighbor_performance, Jaccard_performance, AA_performance = Evaluate_basic_methods(merged_networks)        
         overall_common_neighbor_performance.append(common_neighbor_performance)
         overall_Jaccard_performance.append(Jaccard_performance)
         overall_AA_performance.append(AA_performance)
+        # PMNE model
+        performance_1, performance_2, performance_3 = Evaluate_PMNE_methods(merged_networks, args)
         overall_PMNE_1_performance.append(performance_1)
         overall_PMNE_2_performance.append(performance_2)
         overall_PMNE_3_performance.append(performance_3)
 
+    # Print final output
     performances = [    
         overall_MNE_performance,
         overall_node2Vec_performance,
