@@ -1,14 +1,31 @@
+# config files
 .idea/
-model/*
-**/*.ipynb_checkpoints/*
+.vscode
+__pycache__/*
+.DS_Store
+**/*.DS_Store
 .ipynb_checkpoints
+**/*.ipynb_checkpoints/*
+# specific folders and files
+**/*.o
+LINE*.txt
+model/*
 C++/LINE/linux/youtube-links*
 C++/LINE/linux/net-youtube*
 C++/LINE/linux/vec*.txt
 C++/LINE/linux/example_data
-**/*.o
-LINE*.txt
-__pycache__/*
-.DS_Store
-**/*.DS_Store
-.vscode
+C++/LINE/linux/evaluate/workspace
+# temporary files
+TODO.md
+commit_message.md
+*.ipynb
+# Executables
+C++/LINE/linux/evaluate/liblinear/blas/blas.a
+C++/LINE/linux/evaluate/liblinear/predict
+C++/LINE/linux/evaluate/liblinear/train
+C++/LINE/linux/evaluate/program/preprocess
+C++/LINE/linux/evaluate/program/score
+C++/LINE/linux/evaluate/result.txt
+C++/LINE/linux/normalize
+C++/LINE/linux/reconstruct
+

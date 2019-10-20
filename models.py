@@ -7,10 +7,11 @@ import itertools
 import numpy as np
 import networkx as nx
 import subprocess 
-import Random_walk 
-import Node2Vec_LayerSelect
+import random_walk 
+import node2vec_layer_select
 from utilities import * 
 from MNE import *
+from gensim.models import Word2Vec
 
 def read_LINE_vectors(file_name):
     tmp_embedding = dict()
@@ -61,8 +62,7 @@ def train_LINE_model(edges, epoch_num=1, dimension=100, negative=5):
         final_embedding[node] = np.append(first_order_embedding[node], second_order_embedding[node])
     return final_embedding
 
-
-def Evaluate_basic_methods(input_network):
+def evaluate_basic_methods(input_network):
     print('Start to analyze the base methods')
     training_network = input_network['training']
     test_network = input_network['test_true']
@@ -149,7 +149,7 @@ def merge_PMNE_models(input_all_models, all_nodes, args):
     return final_model
 
 
-def Evaluate_PMNE_methods(input_network, args):
+def evaluate_PMNE_methods(input_network, args):
     # we need to write codes to implement the co-analysis method of PMNE
     print('Start to analyze the PMNE method')
     training_network = input_network['training']
@@ -172,7 +172,7 @@ def Evaluate_PMNE_methods(input_network, args):
             all_false_network.append(edge)
     # print('We are working on method one')
     all_network = set(all_network)
-    G = Random_walk.RWGraph(get_G_from_edges(all_network), args.directed, args.p, args.q)
+    G = random_walk.RWGraph(get_G_from_edges(all_network), args.directed, args.p, args.q)
     G.preprocess_transition_probs()
     walks = G.simulate_walks(args.num_walks, args.walk_length)
     model_one = train_deepwalk_embedding(walks)
@@ -182,7 +182,7 @@ def Evaluate_PMNE_methods(input_network, args):
     all_models = list()
     for edge_type in training_network:
         tmp_edges = training_network[edge_type]
-        tmp_G = Random_walk.RWGraph(get_G_from_edges(tmp_edges), args.directed, args.p, args.q)
+        tmp_G = random_walk.RWGraph(get_G_from_edges(tmp_edges), args.directed, args.p, args.q)
         tmp_G.preprocess_transition_probs()
         walks = tmp_G.simulate_walks(args.num_walks, args.walk_length)
         tmp_model = train_deepwalk_embedding(walks)
@@ -195,7 +195,7 @@ def Evaluate_PMNE_methods(input_network, args):
     for edge_type in training_network:
         tmp_G = get_G_from_edges(training_network[edge_type])
         tmp_graphs.append(tmp_G)
-    MK_G = Node2Vec_LayerSelect.Graph(tmp_graphs, args.p, args.q, 0.5)
+    MK_G = node2vec_layer_select.Graph(tmp_graphs, args.p, args.q, 0.5)
     MK_G.preprocess_transition_probs()
     MK_walks = MK_G.simulate_walks(args.num_walks, args.walk_length)
     model_three = train_deepwalk_embedding(MK_walks)
@@ -232,7 +232,7 @@ def train_embedding(current_embedding, walks, layer_id, iter=10, info_size=10, b
 
 def train_model(network_data):
     base_network = network_data['Base']
-    base_G = Random_walk.RWGraph(get_G_from_edges(base_network), 'directed', 1, 1)
+    base_G = random_walk.RWGraph(get_G_from_edges(base_network), 'directed', 1, 1)
     print('finish building the graph')
     base_G.preprocess_transition_probs()
     base_walks = base_G.simulate_walks(20, 10)
@@ -251,7 +251,7 @@ def train_model(network_data):
             final_model['addition'][layer_id] = zeros((len(final_model['index2word']), 10), dtype=REAL)
         tmp_data = network_data[layer_id]
         # start to do the random walk on a layer
-        layer_G = Random_walk.RWGraph(get_G_from_edges(tmp_data), 'directed', 1, 1)
+        layer_G = random_walk.RWGraph(get_G_from_edges(tmp_data), 'directed', 1, 1)
         layer_G.preprocess_transition_probs()
         layer_walks = layer_G.simulate_walks(20, 10)
         tmp_base, tmp_tran, tmp_local, tmp_index2word = train_embedding(final_model, layer_walks, layer_id, 20, 10, 0)
@@ -274,7 +274,6 @@ def save_model(final_model, save_folder_name):
         np.save(save_folder_name+'/tran_'+str(layer_id)+'.npy', final_model['tran'][layer_id])
         np.save(save_folder_name+'/addition_'+str(layer_id)+'.npy', final_model['addition'][layer_id])
 
-
 def load_model(data_folder_name):
     file_names = os.listdir(data_folder_name)
     layer_ids = list()
@@ -293,3 +292,37 @@ def load_model(data_folder_name):
         final_model['tran'][layer_id] = np.load(data_folder_name+'/tran_'+str(layer_id)+'.npy')
         final_model['addition'][layer_id] = np.load(data_folder_name+'/addition_'+str(layer_id)+'.npy')
     return final_model
+
+def get_local_MNE_model(MNE_model, edge_type):
+    # MNE local model
+    local_model = dict()
+    for pos in range(len(MNE_model['index2word'])):
+        # 0.5 is the weight parameter mentioned in the paper, which is used to show 
+        # how important each relation type is and can be tuned based on the network.
+        local_model[MNE_model['index2word'][pos]] = MNE_model['base'][pos] + 0.5*np.dot(
+            MNE_model['addition'][edge_type][pos], MNE_model['tran'][edge_type])
+    return local_model            
+            
+def get_node2vec_model(train_edges, args):
+    # node2vec model
+    G = get_G_from_edges(train_edges)
+    node2vec_G = random_walk.RWGraph(G, args.directed, 2, 0.5)
+    node2vec_G.preprocess_transition_probs()
+    node2vec_walks = node2vec_G.simulate_walks(20, 10)
+    node2vec_model = train_deepwalk_embedding(node2vec_walks)
+    return node2vec_model
+   
+def get_deepwalk_model(train_edges, args):
+    # Deepwalk model
+    G = get_G_from_edges(train_edges)
+    deepwalk_G = random_walk.RWGraph(G, args.directed, 1, 1)
+    deepwalk_G.preprocess_transition_probs()
+    deepwalk_walks = deepwalk_G.simulate_walks(args.num_walks, 10)
+    deepwalk_model = train_deepwalk_embedding(deepwalk_walks)
+    return deepwalk_model
+
+def train_deepwalk_embedding(walks, iteration=None):
+    if iteration is None:
+        iteration = 100
+    model = Word2Vec(walks, size=200, window=5, min_count=0, sg=1, workers=4, iter=iteration)
+    return model

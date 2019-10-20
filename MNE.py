@@ -104,15 +104,17 @@ class MNE(utils.SaveLoad):
     Class for training, using and evaluating neural networks described in https://code.google.com/p/word2vec/
 
     The model can be stored/loaded via its `save()` and `load()` methods, or stored/loaded in a format
-    compatible with the original word2vec implementation via `wv.save_word2vec_format()` and `KeyedVectors.load_word2vec_format()`.
+    compatible with the original word2vec implementation via `wv.save_word2vec_format()` and 
+    `KeyedVectors.load_word2vec_format()`.
 
     """
 
     def __init__(
-            self, sentences=None, size=100, small_size=10, alpha=0.025, window=5, min_count=5,
-            max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
-            sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=5, null_word=0,
-            trim_rule=None, sorted_vocab=1, batch_words=MAX_WORDS_IN_BATCH, directed=False, initial_embedding=None, limitation=1000, base_weight=1.0):
+        self, sentences=None, size=100, small_size=10, alpha=0.025, window=5, min_count=5,
+        max_vocab_size=None, sample=1e-3, seed=1, workers=3, min_alpha=0.0001,
+        sg=0, hs=0, negative=5, cbow_mean=1, hashfxn=hash, iter=5, null_word=0,
+        trim_rule=None, sorted_vocab=1, batch_words=MAX_WORDS_IN_BATCH, directed=False, 
+        initial_embedding=None, limitation=1000, base_weight=1.0):
         """
         Initialize the model from an iterable of `sentences`. Each sentence is a
         list of words (unicode strings) that will be used for training.
@@ -305,9 +307,12 @@ class MNE(utils.SaveLoad):
         Each sentence must be a list of unicode strings.
 
         """
-        self.scan_vocab(sentences, progress_per=progress_per, trim_rule=trim_rule)  # initial survey
-        self.scale_vocab(keep_raw_vocab=keep_raw_vocab, trim_rule=trim_rule, update=update)  # trim by min_count & precalculate downsampling
-        self.finalize_vocab(update=update)  # build tables & arrays
+        # initial survey
+        self.scan_vocab(sentences, progress_per=progress_per, trim_rule=trim_rule)  
+        # trim by min_count & precalculate downsampling
+        self.scale_vocab(keep_raw_vocab=keep_raw_vocab, trim_rule=trim_rule, update=update)  
+        # build tables & arrays
+        self.finalize_vocab(update=update)  
 
     def scan_vocab(self, sentences, progress_per=10000, trim_rule=None):
         """Do an initial scan of all words appearing in sentences."""

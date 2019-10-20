@@ -11,10 +11,9 @@ from numpy import exp, log, dot, zeros, outer, random, dtype, float32 as REAL,\
     double, uint32, seterr, array, uint8, vstack, fromstring, sqrt, newaxis,\
     ndarray, empty, sum as np_sum, prod, ones, ascontiguousarray, vstack, logaddexp
 from sklearn.metrics import roc_auc_score
-from gensim.models import Word2Vec
 import argparse
 
-def parse_args():
+def get_parser():
     # Parses the node2vec arguments.
     parser = argparse.ArgumentParser(description="Run node2vec.")
 
@@ -59,23 +58,11 @@ def parse_args():
     parser.set_defaults(directed=False)
 
     parser.add_argument('--file', help='Input graph filepath')
+    
+    parser.add_argument('--folds', type=int, default=5,
+                        help='Number of repetitions for k-fold validation')
 
-    return parser.parse_args()
-
-def get_G_from_edges(edges):
-    edge_dict = dict()
-    for edge in edges:
-        edge_key = str(edge[0]) + '_' + str(edge[1])
-        if edge_key not in edge_dict:
-            edge_dict[edge_key] = 1
-        else:
-            edge_dict[edge_key] += 1
-    tmp_G = nx.DiGraph()
-    for edge_key in edge_dict:
-        weight = edge_dict[edge_key]
-        tmp_G.add_edge(edge_key.split('_')[0], edge_key.split('_')[1])
-        tmp_G[edge_key.split('_')[0]][edge_key.split('_')[1]]['weight'] = weight
-    return tmp_G
+    return parser
 
 def load_network_data(f_name):
     # This function is used to load multiplex data
@@ -99,18 +86,62 @@ def load_network_data(f_name):
     print('Finish loading data')
     return edge_data_by_type, all_edges, all_nodes
 
-def train_deepwalk_embedding(walks, iteration=None):
-    if iteration is None:
-        iteration = 100
-    model = Word2Vec(walks, size=200, window=5, min_count=0, sg=1, workers=4, iter=iteration)
-    return model
-
-# randomly divide data into few parts for the purpose of cross-validation
 def divide_data(input_list, group_number):
-    local_division = len(input_list) / float(group_number)
+    # randomly divide data into few parts for the purpose of cross-validation
+    
+    # get length of each group
+    group_size = len(input_list) / float(group_number)
+    # shuffle the data
     random.shuffle(input_list)
-    return [input_list[int(round(local_division * i)): int(round(local_division * (i + 1)))] for i in
-            range(group_number)]
+    # divide in groups
+    groups = [
+        input_list[int(round(group_size * i)): int(round(group_size * (i + 1)))] 
+        for i in range(group_number)]
+    return groups
+
+def get_training_eval_data(edge_data_by_type_by_group, group, number_of_groups=5):
+    training_data_by_type = dict()
+    evaluation_data_by_type = dict()    
+    for edge_type, edge_data in edge_data_by_type_by_group.items():
+        eval_data = []
+        train_data = []
+        for j in range(number_of_groups):
+            # the number of the fold fixes the evaluation data
+            if j == group:
+                for tmp_edge in edge_data[j]:
+                    eval_data.append((tmp_edge[0], tmp_edge[1]))
+            else:
+                for tmp_edge in edge_data[j]:
+                    train_data.append((tmp_edge[0], tmp_edge[1]))
+                    
+        training_data_by_type[edge_type] = train_data
+        evaluation_data_by_type[edge_type] = eval_data
+    return training_data_by_type, evaluation_data_by_type
+
+def select_true_edges(train_edges, eval_edges, training_nodes):
+    tmp_training_nodes = set(itertools.chain.from_iterable(train_edges))
+    selected_true_edges = list()
+    for edge in eval_edges:
+        if edge[0] in tmp_training_nodes and edge[1] in tmp_training_nodes:
+            if edge[0] == edge[1]:
+                continue
+            selected_true_edges.append(edge)
+    return selected_true_edges
+
+def get_G_from_edges(edges):
+    edge_dict = dict()
+    for edge in edges:
+        edge_key = str(edge[0]) + '_' + str(edge[1])
+        if edge_key not in edge_dict:
+            edge_dict[edge_key] = 1
+        else:
+            edge_dict[edge_key] += 1
+    tmp_G = nx.DiGraph()
+    for edge_key in edge_dict:
+        weight = edge_dict[edge_key]
+        tmp_G.add_edge(edge_key.split('_')[0], edge_key.split('_')[1])
+        tmp_G[edge_key.split('_')[0]][edge_key.split('_')[1]]['weight'] = weight
+    return tmp_G
 
 def randomly_choose_false_edges(nodes, true_edges):
     tmp_list = list()

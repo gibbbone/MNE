@@ -4,6 +4,7 @@ import os
 import networkx as nx
 import Random_walk
 from MNE import *
+from models import save_model, load_model
 import sys
 
 file_name = sys.argv[1]
