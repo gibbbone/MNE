@@ -2,6 +2,8 @@
 # <yeungsl@bu.edu>
 # reference:
 # https://github.com/aditya-grover/node2vec/blob/master/src/node2vec.py
+# This is a modified node2vec source
+# Some methods have been changed to replicate the PMNE algorithms
 
 import numpy as np
 import random

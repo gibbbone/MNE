@@ -65,17 +65,30 @@ def get_parser():
     return parser
 
 def load_network_data(f_name):
-    # This function is used to load multiplex data
+    '''
+    This function is used to load multiplex data. The accepted format is:
+    
+    layer  | node_i | node_j | (weighted)
+    1  12 17 1
+    2  12 15 1
+    2  15 3 1
+
+    The (main) output is a dict where layer are keys and values are list of 
+    edges (tuples of nodes)
+    '''
     print('We are loading data from:', f_name)
     edge_data_by_type = dict()
     all_edges = list()
     all_nodes = list()
     with open(f_name, 'r') as f:
         for line in f:
+            # remove bottom line and separate at space
             words = line[:-1].split(' ')
+            # separate by layer            
             if words[0] not in edge_data_by_type:
                 edge_data_by_type[words[0]] = list()
             edge_data_by_type[words[0]].append((words[1], words[2]))
+            # store everything
             all_edges.append((words[1], words[2]))
             all_nodes.append(words[1])
             all_nodes.append(words[2])
@@ -87,7 +100,10 @@ def load_network_data(f_name):
     return edge_data_by_type, all_edges, all_nodes
 
 def divide_data(input_list, group_number):
-    # randomly divide data into few parts for the purpose of cross-validation
+    '''
+    Randomly divide data into few parts for the purpose of cross-validation.
+    It accepts a dict of layer-edges elements and split each of the edges in 5 groups
+    '''
     
     # get length of each group
     group_size = len(input_list) / float(group_number)
@@ -278,17 +294,6 @@ def get_Jaccard_score(networks, target_A, target_B):
         Jaccard_score = common_neighbor_counter/(len(A_neighbors) + len(B_neighbors) - common_neighbor_counter)
     return Jaccard_score
 
-def get_frequency_dict(networks):
-    counting_dict = dict()
-    for edge in networks:
-        if edge[0] not in counting_dict:
-            counting_dict[edge[0]] = 0
-        if edge[1] not in counting_dict:
-            counting_dict[edge[1]] = 0
-        counting_dict[edge[0]] += 1
-        counting_dict[edge[1]] += 1
-    return counting_dict
-
 def get_AA_score(networks, target_A, target_B, frequency_dict):
     AA_score = 0
     A_neighbors = list()
@@ -307,3 +312,14 @@ def get_AA_score(networks, target_A, target_B, frequency_dict):
             if frequency_dict[neighbor] > 1:
                 AA_score += 1/(math_log(frequency_dict[neighbor]))
     return AA_score
+
+def get_frequency_dict(networks):
+    counting_dict = dict()
+    for edge in networks:
+        if edge[0] not in counting_dict:
+            counting_dict[edge[0]] = 0
+        if edge[1] not in counting_dict:
+            counting_dict[edge[1]] = 0
+        counting_dict[edge[0]] += 1
+        counting_dict[edge[1]] += 1
+    return counting_dict

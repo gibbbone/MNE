@@ -1,3 +1,11 @@
+# Sailung Yeung
+# <yeungsl@bu.edu>
+# reference:
+# https://github.com/aditya-grover/node2vec/blob/master/src/node2vec.py
+# This is node2vec source 
+# minus the formatted comments and the print statements
+# plus the renaming of some methods
+
 import numpy as np
 import networkx as nx
 import random

@@ -8,16 +8,15 @@ from MNE import *
 
 if __name__ == "__main__":    
     # logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    args = get_parser().parse_args()
-    file_name = args.file 
-    
-    # load data
-    edge_data_by_type, _, all_nodes = load_network_data(file_name)
-    # model = train_model(edge_data_by_type)
     
     # In our experiment, we use 5-fold cross-validation
     # customizable providing another number via the -folds argument
+    args = get_parser().parse_args()
+    file_name = args.file 
     number_of_groups = args.folds
+
+    # load data
+    edge_data_by_type, _, all_nodes = load_network_data(file_name)    
     
     # create k-fold groups
     edge_data_by_type_by_group = {
@@ -40,14 +39,14 @@ if __name__ == "__main__":
     for i in range(number_of_groups):
         # train-test split
         training_data_by_type, evaluation_data_by_type = get_training_eval_data(
-            edge_data_by_type_by_group, i)
+            edge_data_by_type_by_group, i, number_of_groups)
         
         # collect edges and nodes from training set
         base_edges = list(
             itertools.chain.from_iterable(
                 [l for l in training_data_by_type.values()]))
-        training_nodes = list(set(itertools.chain.from_iterable(base_edges)))
         training_data_by_type['Base'] = base_edges
+        training_nodes = list(set(itertools.chain.from_iterable(base_edges)))        
         
         # train global MNE model with all the data in advance
         MNE_model = train_model(training_data_by_type)
@@ -88,22 +87,38 @@ if __name__ == "__main__":
             
             # MNE model            
             local_model = get_local_MNE_model(MNE_model, edge_type)
-            tmp_MNE_score = get_dict_AUC(local_model, selected_true_edges, selected_false_edges)            
+            tmp_MNE_score = get_dict_AUC(
+                local_model, 
+                selected_true_edges, 
+                selected_false_edges)            
             print('MNE score:', tmp_MNE_score)
             
             # node2vec model
-            node2vec_model = get_node2vec_model(train_edges, args)
-            tmp_node2vec_score = get_AUC(node2vec_model, selected_true_edges, selected_false_edges)
+            G = get_G_from_edges(train_edges)
+            # node2vec_model = get_node2vec_model(G, args)
+            node2vec_model = get_random_walk_model(G, args, 2, 0.5, 20)
+            tmp_node2vec_score = get_AUC(
+                node2vec_model, 
+                selected_true_edges, 
+                selected_false_edges)
             print('Node2vec score:', tmp_node2vec_score)
             
             # Deepwalk model
-            deepwalk_model = get_deepwalk_model(train_edges, args)
-            tmp_deepwalk_score = get_AUC(deepwalk_model, selected_true_edges, selected_false_edges)
+            # G = get_G_from_edges(train_edges)
+            # deepwalk_model = get_deepwalk_model(G, args)
+            deepwalk_model = get_random_walk_model(G, args, 1, 1, args.num_walks)
+            tmp_deepwalk_score = get_AUC(
+                deepwalk_model, 
+                selected_true_edges, 
+                selected_false_edges)
             print('Deepwalk score:', tmp_deepwalk_score)
             
             # Line model
             LINE_model = train_LINE_model(train_edges)
-            tmp_LINE_score = get_dict_AUC(LINE_model, selected_true_edges, selected_false_edges)
+            tmp_LINE_score = get_dict_AUC(
+                LINE_model, 
+                selected_true_edges, 
+                selected_false_edges)
             print('LINE score:', tmp_LINE_score)
             
             # Update performances
