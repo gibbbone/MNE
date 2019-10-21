@@ -144,6 +144,20 @@ def select_true_edges(train_edges, eval_edges, training_nodes):
             selected_true_edges.append(edge)
     return selected_true_edges
 
+def randomly_choose_false_edges(nodes, true_edges):
+    tmp_list = list()
+    all_edges = list()
+    for i in range(len(nodes)):
+        for j in range(len(nodes)):
+            all_edges.append((i, j))
+    random.shuffle(all_edges)
+    for edge in all_edges:
+        if edge[0] == edge[1]:
+            continue
+        if (nodes[edge[0]], nodes[edge[1]]) not in true_edges and (nodes[edge[1]], nodes[edge[0]]) not in true_edges:
+            tmp_list.append((nodes[edge[0]], nodes[edge[1]]))
+    return tmp_list
+
 def get_G_from_edges(edges):
     edge_dict = dict()
     for edge in edges:
@@ -158,20 +172,6 @@ def get_G_from_edges(edges):
         tmp_G.add_edge(edge_key.split('_')[0], edge_key.split('_')[1])
         tmp_G[edge_key.split('_')[0]][edge_key.split('_')[1]]['weight'] = weight
     return tmp_G
-
-def randomly_choose_false_edges(nodes, true_edges):
-    tmp_list = list()
-    all_edges = list()
-    for i in range(len(nodes)):
-        for j in range(len(nodes)):
-            all_edges.append((i, j))
-    random.shuffle(all_edges)
-    for edge in all_edges:
-        if edge[0] == edge[1]:
-            continue
-        if (nodes[edge[0]], nodes[edge[1]]) not in true_edges and (nodes[edge[1]], nodes[edge[0]]) not in true_edges:
-            tmp_list.append((nodes[edge[0]], nodes[edge[1]]))
-    return tmp_list
 
 def get_dict_neighbourhood_score(local_model, node1, node2):
     try:

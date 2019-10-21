@@ -41,7 +41,7 @@ def train_embedding(current_embedding, walks, layer_id, iter=10, info_size=10, b
 
     return new_model.in_base, new_model.in_tran, new_model.in_local, new_model.wv.index2word
 
-def train_model(network_data):
+def train_model(network_data, args):
     base_network = network_data['Base']
     G = get_G_from_edges(base_network)
     base_walks = get_random_walk_model(
@@ -222,6 +222,7 @@ def evaluate_basic_methods(input_network):
     prediction_list_cc = list()
     prediction_list_jacc = list()
     prediction_list_aa = list()
+    frequency_dict = get_frequency_dict(all_network)
     for edge in all_test_network:
         true_list.append(1)
         prediction_list_cc.append(get_common_neighbor_score(all_network, edge[0], edge[1]))

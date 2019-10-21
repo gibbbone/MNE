@@ -49,7 +49,7 @@ if __name__ == "__main__":
         training_nodes = list(set(itertools.chain.from_iterable(base_edges)))        
         
         # train global MNE model with all the data in advance
-        MNE_model = train_model(training_data_by_type)
+        MNE_model = train_model(training_data_by_type, args)
         
         #train or load Ohment here 
         
@@ -70,13 +70,13 @@ if __name__ == "__main__":
             print('We are working on edge:', edge_type)      
             
             # get true/false edges
-            eval_edges = edge_data_by_type[edge_type]
+            eval_edges = evaluation_data_by_type[edge_type]
             selected_true_edges = select_true_edges(
                 train_edges, eval_edges, training_nodes)            
             if len(selected_true_edges) == 0:
                 continue                
             selected_false_edges = randomly_choose_false_edges(
-                training_nodes, eval_edges)
+                training_nodes, edge_data_by_type[edge_type])
             
             # log and store details
             print('number of info network edges:', len(train_edges))
